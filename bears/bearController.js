@@ -17,28 +17,91 @@ router
   .post((req, res) => {
     const { species, latinName } = req.body;
     const newBear = new Bear({ species, latinName });
-    newBear
-      .save()
-      .then(savedBear => {
+
+    if (!species || !latinName) {
+      res.status(400)
+      res.json({ message: "Please provide both species and latinName for the bear." });
+      return;
+    }
+    newBear.save()
+      .then( bear => {
         res.status(201)
-        res.json({ savedBear })
+        res.json({ bear });
       })
       .catch(err => {
         res.status(201)
-        res.json({ status: 'please implement POST functionality' });
+        res.json({ message: "Error, Cannot add new Bear." });
     })
   });
 
 router
   .route('/:id')
   .get((req, res) => {
-    res.status(200).json({ route: '/api/bears/' + req.params.id });
+    const { id } = req.params
+
+    Bear.findById(id)
+    .then( bear => {
+      if (bear === null) {
+        res.status(404)
+        res.json({ message: "The bear with the specified ID does not exist." })
+      } 
+      else {
+        res.status(200)
+        res.json(bear);
+      }
+    })
+      .catch(err => {
+        res.status(500)
+        res.json({ message: "Error, No bear by that id in DB"})
+    })
   })
   .delete((req, res) => {
-    res.status(200).json({ status: 'please implement DELETE functionality' });
+    const { id } = req.params;
+
+    Bear.findByIdAndRemove(id)
+    .then(deletedBear => {
+      if (deletedBear === null) {
+        res.status(404)
+        res.json({ message: "The bear with the specified ID does not exist." })
+      } else {
+        res.status(200)
+        res.json({ deletedBear });
+      }
+    })
+    .catch( err => {
+      res.status(500).json({ message: "The bear could not be removed" })
+    })
   })
   .put((req, res) => {
-    res.status(200).json({ status: 'please implement PUT functionality' });
+    const { id } = req.params;
+    const changes = req.body;
+    
+    Bear.findByIdAndUpdate(id, changes)
+      .then( bear => {
+        if (bear === null) {
+          res.status(404)
+          res.json({ message: "The bear with the specified ID does not exist." })
+        } 
+        else {
+          Bear.findById(id)
+            .then( updatedBear => {
+              if (updatedBear == null) {
+                res.status(404)
+                res.json({ message: "The bear with the specified ID does not exist." })
+              } 
+              else {
+                res.status(200)
+                res.json({ updatedBear });
+              }
+            })
+            .catch( err => {
+              res.status(500)
+              res.json({ message: "The bear information could not be retrieved." })
+            })}
+      })
+      .catch( err => {
+        res.status(500).json({ message: "The bear information could not be modified." })
+      })
   });
 
 module.exports = router;
